@@ -24,24 +24,26 @@ export function createDayNightSystem({
        COLORS / 색상
     ========================================================= */
 
+// Sky colors / 하늘 색상
     const skyDay =
-        new THREE.Color(0x87ceeb);
+        new THREE.Color(0x87cefa);
 
     const skySunset =
-        new THREE.Color(0xff9060);
+        new THREE.Color(0xff9eb5);
 
     const skyNight =
-        new THREE.Color(0x0a1030);
+        new THREE.Color(0x182b50);
 
 
+// Light and sun colors / 조명과 태양 색상
     const sunDay =
-        new THREE.Color(0xffffff);
+        new THREE.Color(0xfff8ee);
 
     const sunSunset =
-        new THREE.Color(0xff8040);
+        new THREE.Color(0xffb08c);
 
     const sunBright =
-        new THREE.Color(0xffee88);
+        new THREE.Color(0xffedaa);
 
 
     // Reuse one Color instance to avoid creating a new object

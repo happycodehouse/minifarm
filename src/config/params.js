@@ -3,14 +3,14 @@
 ========================================================= */
 
 function getCurrentHour() {
-    const now =
-        new Date();
+    const now = new Date();
 
-    return (
+    const currentHour =
         now.getHours() +
         now.getMinutes() / 60 +
-        now.getSeconds() / 3600
-    );
+        now.getSeconds() / 3600;
+
+    return Math.round(currentHour * 10) / 10;
 }
 
 

@@ -51,6 +51,7 @@ body {
     margin: 0 0 20px;
     font-family: "Chango", sans-serif;
     font-size: 28px;
+    letter-spacing: initial;
 }
 
 .loading-content p {

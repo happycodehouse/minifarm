@@ -53,7 +53,6 @@ export function createGUI({
                 const target = selectedObject;
                 clearSelection();
                 forest.remove(target);
-                farm.regenerate();
             },
         }, 'remove').name('Delete Tree');
         selectedFolder.add({deselect: clearSelection}, 'deselect').name('Deselect');
@@ -130,7 +129,11 @@ export function createGUI({
 
     function applyCurrentTime() {
         const now = new Date();
-        params.hour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+        const currentHour =
+            now.getHours() +
+            now.getMinutes() / 60 +
+            now.getSeconds() / 3600;
+        params.hour = Math.round(currentHour * 10) / 10;
 
         // Stop simulated time playback.
         // 가상 시간 자동 재생을 중지합니다.
