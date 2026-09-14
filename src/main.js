@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { params } from './config/params.js';
-import { createSunMoon } from './objects/sunMoon.js';
-import { createForestSystem } from './systems/forest.js';
-import { createFarmSystem } from './systems/farm.js';
-import { createDayNightSystem } from './systems/dayNight.js';
-import { createGUI } from './ui/gui.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {params} from './config/params.js';
+import {createSunMoon} from './objects/sunMoon.js';
+import {createGroundLight} from './objects/groundLight.js';
+import {createForestSystem} from './systems/forest.js';
+import {createFarmSystem} from './systems/farm.js';
+import {createDayNightSystem} from './systems/dayNight.js';
+import {createGUI} from './ui/gui.js';
 
 const GROUND_SIZE = 100;
 const SUN_DISTANCE = 45;
@@ -21,7 +22,7 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 8, 24);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
@@ -39,7 +40,7 @@ controls.update();
 
 const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
-    new THREE.MeshStandardMaterial({ color: 0x4caf50 })
+    new THREE.MeshStandardMaterial({color: 0x4caf50})
 );
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
@@ -50,6 +51,13 @@ grid.position.y = 0.01;
 grid.material.transparent = true;
 grid.material.opacity = 0.35;
 scene.add(grid);
+
+const groundLight =
+    createGroundLight(
+        scene,
+        8,
+        8
+    );
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.castShadow = true;
@@ -87,8 +95,8 @@ const hemisphereLight = new THREE.HemisphereLight(0x87ceeb, 0x4caf50, 0.6);
 scene.add(hemisphereLight);
 
 const celestial = createSunMoon(scene);
-const forest = createForestSystem({ scene, params, groundSize: GROUND_SIZE });
-const farm = createFarmSystem({ scene, params, forest, groundSize: GROUND_SIZE });
+const forest = createForestSystem({scene, params, groundSize: GROUND_SIZE});
+const farm = createFarmSystem({scene, params, forest, groundSize: GROUND_SIZE});
 const dayNight = createDayNightSystem({
     scene,
     params,
@@ -108,7 +116,8 @@ const gui = createGUI({
     forest,
     farm,
     dayNight,
-    lightHelper
+    lightHelper,
+    groundLight
 });
 
 // Trees must be generated before cows for collision checks.
@@ -139,6 +148,7 @@ function animate() {
         camera
     );
 }
+
 animate();
 
 window.addEventListener('resize', () => {

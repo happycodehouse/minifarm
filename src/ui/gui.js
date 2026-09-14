@@ -1,7 +1,19 @@
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 
-export function createGUI({ scene, camera, renderer, controls, params, grid, forest, farm, dayNight, lightHelper }) {
+export function createGUI({
+                              scene,
+                              camera,
+                              renderer,
+                              controls,
+                              params,
+                              grid,
+                              forest,
+                              farm,
+                              dayNight,
+                              lightHelper,
+                              groundLight
+                          }) {
     const gui = new GUI();
     const raycaster = new THREE.Raycaster();
     const pointerNDC = new THREE.Vector2();
@@ -44,7 +56,7 @@ export function createGUI({ scene, camera, renderer, controls, params, grid, for
                 farm.regenerate();
             },
         }, 'remove').name('Delete Tree');
-        selectedFolder.add({ deselect: clearSelection }, 'deselect').name('Deselect');
+        selectedFolder.add({deselect: clearSelection}, 'deselect').name('Deselect');
         selectedFolder.open();
     }
 
@@ -64,7 +76,7 @@ export function createGUI({ scene, camera, renderer, controls, params, grid, for
                 farm.remove(target);
             },
         }, 'remove').name('Delete Cow');
-        selectedFolder.add({ deselect: clearSelection }, 'deselect').name('Deselect');
+        selectedFolder.add({deselect: clearSelection}, 'deselect').name('Deselect');
         selectedFolder.open();
     }
 
@@ -81,8 +93,11 @@ export function createGUI({ scene, camera, renderer, controls, params, grid, for
     treeFolder.add(params, 'treeCount', 0, 15, 1).name('Count').onFinishChange(regenerateWorldObjects);
     treeFolder.addColor(forest.defaultLeafMaterial, 'color').name('Default Leaf Color');
     treeFolder.addColor(forest.defaultTrunkMaterial, 'color').name('Default Trunk Color');
-    treeFolder.add({ regenerate: regenerateWorldObjects }, 'regenerate').name('Regenerate');
-    treeFolder.add({ hint: () => {} }, 'hint').name('💡 Click a tree to edit').disable();
+    treeFolder.add({regenerate: regenerateWorldObjects}, 'regenerate').name('Regenerate');
+    treeFolder.add({
+        hint: () => {
+        }
+    }, 'hint').name('💡 Click a tree to edit').disable();
 
     /* ---------- Cows ---------- */
     const cowFolder = gui.addFolder('Cows');
@@ -96,7 +111,10 @@ export function createGUI({ scene, camera, renderer, controls, params, grid, for
             farm.regenerate();
         },
     }, 'regenerate').name('Regenerate');
-    cowFolder.add({ hint: () => {} }, 'hint').name('💡 Click a cow to edit').disable();
+    cowFolder.add({
+        hint: () => {
+        }
+    }, 'hint').name('💡 Click a cow to edit').disable();
 
     /* ---------- Time ---------- */
     const timeFolder = gui.addFolder('Time');
@@ -126,12 +144,29 @@ export function createGUI({ scene, camera, renderer, controls, params, grid, for
         autoController.updateDisplay();
     }
 
-    timeFolder.add({ useCurrentTime: applyCurrentTime }, 'useCurrentTime').name('Use Current Time');
+    timeFolder.add({useCurrentTime: applyCurrentTime}, 'useCurrentTime').name('Use Current Time');
     timeFolder.open();
 
     /* ---------- Lighting ---------- */
-    const lightingFolder = gui.addFolder('Lighting');
-    lightingFolder.add(lightHelper, 'visible').name('Sun/Moon Light Guide');
+    const lightingFolder =
+        gui.addFolder('Lighting');
+
+    lightingFolder
+        .add(
+            lightHelper,
+            'visible'
+        )
+        .name('Sun/Moon Light Guide');
+
+    lightingFolder
+        .add(
+            groundLight.state,
+            'enabled'
+        )
+        .name('Ground Light')
+        .onChange(
+            groundLight.setEnabled
+        );
 
     /* ---------- View ---------- */
     const viewFolder = gui.addFolder('View');
@@ -141,7 +176,7 @@ export function createGUI({ scene, camera, renderer, controls, params, grid, for
 
     /* ---------- Pointer selection (click vs. drag) ---------- */
     function handlePointerDown(event) {
-        pointerDownPosition = { x: event.clientX, y: event.clientY };
+        pointerDownPosition = {x: event.clientX, y: event.clientY};
     }
 
     function handlePointerUp(event) {
