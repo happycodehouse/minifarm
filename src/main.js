@@ -8,7 +8,7 @@ import { createDayNightSystem } from './systems/dayNight.js';
 import { createGUI } from './ui/gui.js';
 
 const GROUND_SIZE = 100;
-const SUN_DISTANCE = 35;
+const SUN_DISTANCE = 45;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);

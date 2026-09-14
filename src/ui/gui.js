@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 
-export function createGUI({scene, camera, renderer, controls, params, grid, forest, farm, dayNight, lightHelper}) {
+export function createGUI({ scene, camera, renderer, controls, params, grid, forest, farm, dayNight, lightHelper }) {
     const gui = new GUI();
     const raycaster = new THREE.Raycaster();
     const pointerNDC = new THREE.Vector2();
@@ -32,6 +32,7 @@ export function createGUI({scene, camera, renderer, controls, params, grid, fore
         clearSelection();
         selectedObject = tree;
         createOutline(tree);
+
         selectedFolder = gui.addFolder('Selected Tree');
         selectedFolder.addColor(tree.userData.leafMaterial, 'color').name('Leaf Color');
         selectedFolder.addColor(tree.userData.trunkMaterial, 'color').name('Trunk Color');
@@ -41,9 +42,9 @@ export function createGUI({scene, camera, renderer, controls, params, grid, fore
                 clearSelection();
                 forest.remove(target);
                 farm.regenerate();
-            }
+            },
         }, 'remove').name('Delete Tree');
-        selectedFolder.add({deselect: clearSelection}, 'deselect').name('Deselect');
+        selectedFolder.add({ deselect: clearSelection }, 'deselect').name('Deselect');
         selectedFolder.open();
     }
 
@@ -52,6 +53,7 @@ export function createGUI({scene, camera, renderer, controls, params, grid, fore
         clearSelection();
         selectedObject = cow;
         createOutline(cow);
+
         selectedFolder = gui.addFolder('Selected Cow');
         selectedFolder.addColor(cow.userData.baseMaterial, 'color').name('Body Color');
         selectedFolder.addColor(cow.userData.spotMaterial, 'color').name('Spot Color');
@@ -60,9 +62,9 @@ export function createGUI({scene, camera, renderer, controls, params, grid, fore
                 const target = selectedObject;
                 clearSelection();
                 farm.remove(target);
-            }
+            },
         }, 'remove').name('Delete Cow');
-        selectedFolder.add({deselect: clearSelection}, 'deselect').name('Deselect');
+        selectedFolder.add({ deselect: clearSelection }, 'deselect').name('Deselect');
         selectedFolder.open();
     }
 
@@ -74,16 +76,15 @@ export function createGUI({scene, camera, renderer, controls, params, grid, fore
         farm.regenerate();
     }
 
+    /* ---------- Trees ---------- */
     const treeFolder = gui.addFolder('Trees');
     treeFolder.add(params, 'treeCount', 0, 15, 1).name('Count').onFinishChange(regenerateWorldObjects);
     treeFolder.addColor(forest.defaultLeafMaterial, 'color').name('Default Leaf Color');
     treeFolder.addColor(forest.defaultTrunkMaterial, 'color').name('Default Trunk Color');
-    treeFolder.add({regenerate: regenerateWorldObjects}, 'regenerate').name('Regenerate');
-    treeFolder.add({
-        hint: () => {
-        }
-    }, 'hint').name('💡 Click a tree to edit').disable();
+    treeFolder.add({ regenerate: regenerateWorldObjects }, 'regenerate').name('Regenerate');
+    treeFolder.add({ hint: () => {} }, 'hint').name('💡 Click a tree to edit').disable();
 
+    /* ---------- Cows ---------- */
     const cowFolder = gui.addFolder('Cows');
     cowFolder.add(params, 'cowCount', 0, 15, 1).name('Count').onFinishChange(() => {
         clearSelection();
@@ -93,40 +94,59 @@ export function createGUI({scene, camera, renderer, controls, params, grid, fore
         regenerate: () => {
             clearSelection();
             farm.regenerate();
-        }
+        },
     }, 'regenerate').name('Regenerate');
-    cowFolder.add({
-        hint: () => {
-        }
-    }, 'hint').name('💡 Click a cow to edit').disable();
+    cowFolder.add({ hint: () => {} }, 'hint').name('💡 Click a cow to edit').disable();
 
+    /* ---------- Time ---------- */
     const timeFolder = gui.addFolder('Time');
-    const hourController = timeFolder.add(params, 'hour', 0, 24, 0.1).name('Hour').onChange(dayNight.update);
-    timeFolder.add(params, 'auto').name('Auto Play');
+
+    const hourController = timeFolder
+        .add(params, 'hour', 0, 24, 0.1)
+        .name('Hour')
+        .onChange(dayNight.update);
+
+    const autoController = timeFolder
+        .add(params, 'auto')
+        .name('Auto Play');
+
+    function applyCurrentTime() {
+        const now = new Date();
+        params.hour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+
+        // Stop simulated time playback.
+        // 가상 시간 자동 재생을 중지합니다.
+        params.auto = false;
+
+        dayNight.update();
+
+        // Synchronize both GUI controls.
+        // 시간과 자동 재생 GUI를 현재 값과 동기화합니다.
+        hourController.updateDisplay();
+        autoController.updateDisplay();
+    }
+
+    timeFolder.add({ useCurrentTime: applyCurrentTime }, 'useCurrentTime').name('Use Current Time');
     timeFolder.open();
 
+    /* ---------- Lighting ---------- */
+    const lightingFolder = gui.addFolder('Lighting');
+    lightingFolder.add(lightHelper, 'visible').name('Sun/Moon Light Guide');
 
-    const lightingFolder =
-        gui.addFolder('Lighting');
-
-    lightingFolder
-        .add(
-            lightHelper,
-            'visible'
-        )
-        .name('Sun/Moon Light Guide');
-
+    /* ---------- View ---------- */
     const viewFolder = gui.addFolder('View');
     viewFolder.add(grid, 'visible').name('Grid');
     viewFolder.add(controls, 'autoRotate').name('Auto Rotate');
     viewFolder.add(controls, 'enablePan').name('Enable Pan');
 
+    /* ---------- Pointer selection (click vs. drag) ---------- */
     function handlePointerDown(event) {
-        pointerDownPosition = {x: event.clientX, y: event.clientY};
+        pointerDownPosition = { x: event.clientX, y: event.clientY };
     }
 
     function handlePointerUp(event) {
         if (!pointerDownPosition) return;
+
         const moved = Math.hypot(
             event.clientX - pointerDownPosition.x,
             event.clientY - pointerDownPosition.y
@@ -169,6 +189,6 @@ export function createGUI({scene, camera, renderer, controls, params, grid, fore
         instance: gui,
         updateHourDisplay: () => hourController.updateDisplay(),
         clearSelection,
-        destroy
+        destroy,
     };
 }
