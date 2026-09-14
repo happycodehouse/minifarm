@@ -79,5 +79,53 @@ export function createFarmSystem({ scene, params, forest, groundSize = 100 }) {
         disposeCow(cow);
     }
 
-    return { group, cows, occupiedAreas, materials, regenerate, clear, remove };
+    // Move a cow only when its destination is free.
+    // 목적지가 비어 있을 때만 소를 이동합니다.
+    function move(cow, x, z) {
+        if (!cow || cow.parent !== group) {
+            return false;
+        }
+
+        if (!Number.isFinite(x) || !Number.isFinite(z)) {
+            return false;
+        }
+
+        // Keep the cow inside the ground.
+        // 소가 바닥 밖으로 나가지 않도록 제한합니다.
+        const limit = groundSize / 2 - COW_RADIUS;
+
+        if (Math.abs(x) > limit || Math.abs(z) > limit) {
+            return false;
+        }
+
+        // Exclude the selected cow from collision checks.
+        // 이동할 소 자신은 충돌 검사에서 제외합니다.
+        const otherCowAreas = occupiedAreas.filter(
+            (area) => area.object !== cow
+        );
+
+        if (
+            overlaps(x, z, forest.occupiedAreas) ||
+            overlaps(x, z, otherCowAreas)
+        ) {
+            return false;
+        }
+
+        cow.position.set(x, 0, z);
+
+        // Update the stored collision position too.
+        // 충돌 검사에 사용하는 좌표도 함께 갱신합니다.
+        const area = occupiedAreas.find(
+            (area) => area.object === cow
+        );
+
+        if (area) {
+            area.x = x;
+            area.z = z;
+        }
+
+        return true;
+    }
+
+    return { group, cows, occupiedAreas, materials, regenerate, clear, remove, move };
 }

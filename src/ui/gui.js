@@ -1,22 +1,17 @@
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 
-export function createGUI({
-                              scene,
-                              camera,
-                              renderer,
-                              controls,
-                              params,
-                              grid,
-                              forest,
-                              farm,
-                              dayNight,
-                              lightHelper,
-                              groundLight
-                          }) {
+export function createGUI({scene, camera, renderer, controls, params, grid, forest, farm, dayNight, lightHelper, groundLight}) {
     const gui = new GUI();
     const raycaster = new THREE.Raycaster();
     const pointerNDC = new THREE.Vector2();
+    // Ground plane at y = 0.
+    // 높이 y = 0인 바닥 평면입니다.
+    const groundPlane = new THREE.Plane(
+        new THREE.Vector3(0, 1, 0),
+        0
+    );
+    const groundHit = new THREE.Vector3();
     let pointerDownPosition = null;
     let selectedObject = null;
     let selectedFolder = null;
@@ -61,21 +56,93 @@ export function createGUI({
 
     function selectCow(cow) {
         if (selectedObject === cow) return;
+
         clearSelection();
+
         selectedObject = cow;
         createOutline(cow);
 
         selectedFolder = gui.addFolder('Selected Cow');
-        selectedFolder.addColor(cow.userData.baseMaterial, 'color').name('Body Color');
-        selectedFolder.addColor(cow.userData.spotMaterial, 'color').name('Spot Color');
-        selectedFolder.add({
-            remove: () => {
-                const target = selectedObject;
-                clearSelection();
-                farm.remove(target);
+
+        selectedFolder
+            .addColor(cow.userData.baseMaterial, 'color')
+            .name('Body Color');
+
+        selectedFolder
+            .addColor(cow.userData.spotMaterial, 'color')
+            .name('Spot Color');
+
+
+        // Keep input values separate until movement is applied.
+        // 이동을 적용하기 전까지 입력값을 별도로 보관합니다.
+        const positionInput = {
+            x: cow.position.x,
+            z: cow.position.z
+        };
+
+        const xController = selectedFolder
+            .add(positionInput, 'x')
+            .name('Position X');
+
+        const zController = selectedFolder
+            .add(positionInput, 'z')
+            .name('Position Z');
+
+        const feedback = {
+            message: 'Ready'
+        };
+
+        const actions = {
+            move() {
+                const moved = farm.move(
+                    cow,
+                    positionInput.x,
+                    positionInput.z
+                );
+
+                feedback.message = moved
+                    ? 'Moved'
+                    : 'Blocked: overlap or outside ground';
+
+                // Reflect the actual position after the attempt.
+                // 이동 결과에 맞춰 실제 좌표를 표시합니다.
+                positionInput.x = cow.position.x;
+                positionInput.z = cow.position.z;
+
+                xController.updateDisplay();
+                zController.updateDisplay();
+                statusController.updateDisplay();
+
+                if (selectionOutline) {
+                    selectionOutline.update();
+                }
             },
-        }, 'remove').name('Delete Cow');
-        selectedFolder.add({deselect: clearSelection}, 'deselect').name('Deselect');
+
+            remove() {
+                clearSelection();
+                farm.remove(cow);
+            },
+
+            deselect: clearSelection
+        };
+
+        selectedFolder
+            .add(actions, 'move')
+            .name('Move Cow');
+
+        const statusController = selectedFolder
+            .add(feedback, 'message')
+            .name('Status')
+            .disable();
+
+        selectedFolder
+            .add(actions, 'remove')
+            .name('Delete Cow');
+
+        selectedFolder
+            .add(actions, 'deselect')
+            .name('Deselect');
+
         selectedFolder.open();
     }
 
@@ -189,28 +256,90 @@ export function createGUI({
             event.clientX - pointerDownPosition.x,
             event.clientY - pointerDownPosition.y
         );
+
         pointerDownPosition = null;
+
+        // Ignore camera dragging.
+        // 카메라 드래그는 무시합니다.
         if (moved > 5) return;
 
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointerNDC.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        pointerNDC.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        const rect =
+            renderer.domElement.getBoundingClientRect();
+
+        pointerNDC.x =
+            ((event.clientX - rect.left) / rect.width) * 2 - 1;
+
+        pointerNDC.y =
+            -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        scene.updateMatrixWorld(true);
+        camera.updateMatrixWorld(true);
+
         raycaster.setFromCamera(pointerNDC, camera);
 
-        const roots = [...forest.group.children, ...farm.group.children];
-        const intersections = raycaster.intersectObjects(roots, true);
-        if (intersections.length === 0) {
-            clearSelection();
+
+        // Select a tree or cow first if one was clicked.
+        // 나무나 소를 클릭했다면 해당 오브젝트를 선택합니다.
+        const roots = [
+            ...forest.group.children,
+            ...farm.group.children
+        ];
+
+        const intersections =
+            raycaster.intersectObjects(roots, true);
+
+        if (intersections.length > 0) {
+            let object = intersections[0].object;
+
+            while (
+                object.parent &&
+                object.parent !== forest.group &&
+                object.parent !== farm.group
+                ) {
+                object = object.parent;
+            }
+
+            if (object.parent === forest.group) {
+                selectTree(object);
+            } else if (object.parent === farm.group) {
+                selectCow(object);
+            }
+
             return;
         }
 
-        let object = intersections[0].object;
-        while (object.parent && object.parent !== forest.group && object.parent !== farm.group) {
-            object = object.parent;
+
+        // Find the world coordinates where the ray meets the ground.
+        // 마우스 방향의 광선과 바닥이 만나는 3D 좌표를 구합니다.
+        const hit = raycaster.ray.intersectPlane(
+            groundPlane,
+            groundHit
+        );
+
+        if (
+            hit &&
+            selectedObject &&
+            selectedObject.parent === farm.group
+        ) {
+            const cow = selectedObject;
+
+            const didMove = farm.move(
+                cow,
+                hit.x,
+                hit.z
+            );
+
+            if (didMove) {
+                // Rebuild the selected-cow GUI with its new coordinates.
+                // 이동한 좌표에 맞춰 선택 표시와 GUI를 갱신합니다.
+                clearSelection();
+                selectCow(cow);
+            }
+
+            return;
         }
 
-        if (object.parent === forest.group) selectTree(object);
-        else if (object.parent === farm.group) selectCow(object);
+        clearSelection();
     }
 
     renderer.domElement.addEventListener('pointerdown', handlePointerDown);

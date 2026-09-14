@@ -37,7 +37,7 @@ import {
    CONSTANTS / 상수
 ========================================================= */
 
-const GROUND_SIZE = 100;
+const GROUND_SIZE = 70;
 const SUN_DISTANCE = 45;
 
 
@@ -180,6 +180,14 @@ const controls =
         renderer.domElement
     );
 
+controls.mouseButtons = {
+    LEFT: THREE.MOUSE.PAN,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.ROTATE
+};
+
+controls.screenSpacePanning = false;
+controls.enablePan = true;
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
