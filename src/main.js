@@ -23,13 +23,45 @@ const SUN_DISTANCE = 45;
 
 
 /* =========================================================
+   FIXED OBJECT POSITIONS / 고정 오브젝트 위치
+========================================================= */
+
+const GROUND_LIGHT_POSITION = {
+    x: 8,
+    z: 8
+};
+
+const TRACTOR_POSITION = {
+    x: 0,
+    z: 0
+};
+
+
+/*
+ * Areas where randomly generated objects cannot appear.
+ * 랜덤 생성 오브젝트가 배치될 수 없는 영역입니다.
+ */
+const reservedAreas = [
+    {
+        x: GROUND_LIGHT_POSITION.x,
+        z: GROUND_LIGHT_POSITION.z,
+        radius: 2
+    },
+    {
+        x: TRACTOR_POSITION.x,
+        z: TRACTOR_POSITION.z,
+        radius: 4
+    }
+];
+
+
+/* =========================================================
    LOADING SCREEN / 로딩 화면
 ========================================================= */
 
 const loadingScreen = document.querySelector('#loading-screen');
 const loadingProgress = document.querySelector('#loading-progress');
 const loadingText = document.querySelector('#loading-text');
-
 
 function setLoadingProgress(progress, message) {
     if (loadingProgress) {
@@ -130,9 +162,7 @@ controls.update();
 
 const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
-    new THREE.MeshStandardMaterial({
-        color: 0x4caf50
-    })
+    new THREE.MeshStandardMaterial({color: 0x4caf50})
 );
 
 ground.rotation.x = -Math.PI / 2;
@@ -163,7 +193,11 @@ scene.add(grid);
    GROUND LIGHT / 바닥 조명
 ========================================================= */
 
-const groundLight = createGroundLight(scene, 8, 8);
+const groundLight = createGroundLight(
+    scene,
+    GROUND_LIGHT_POSITION.x,
+    GROUND_LIGHT_POSITION.z
+);
 
 
 /* =========================================================
@@ -226,13 +260,25 @@ const celestial = createSunMoon(scene);
 
 
 /* =========================================================
+   TRACTOR / 트랙터
+========================================================= */
+
+createTractor(
+    scene,
+    TRACTOR_POSITION.x,
+    TRACTOR_POSITION.z
+);
+
+
+/* =========================================================
    FOREST / 숲
 ========================================================= */
 
 const forest = createForestSystem({
     scene,
     params,
-    groundSize: GROUND_SIZE
+    groundSize: GROUND_SIZE,
+    reservedAreas
 });
 
 
@@ -244,15 +290,9 @@ const farm = createFarmSystem({
     scene,
     params,
     forest,
-    groundSize: GROUND_SIZE
+    groundSize: GROUND_SIZE,
+    reservedAreas
 });
-
-
-/* =========================================================
-   TRACTOR / 트랙터
-========================================================= */
-
-createTractor(scene);
 
 
 /* =========================================================
@@ -297,11 +337,6 @@ async function initializeScene() {
     setLoadingProgress(30, 'Growing trees...');
     await waitForNextFrame();
 
-    // Trees must be generated before cows
-    // because cows check tree positions.
-    //
-    // 젖소가 나무 위치를 검사하므로
-    // 나무를 먼저 생성합니다.
     forest.regenerate();
 
 
@@ -320,24 +355,16 @@ async function initializeScene() {
     setLoadingProgress(90, 'Rendering scene...');
     await waitForNextFrame();
 
-
-    // Compile shaders before showing the scene.
-    // 장면을 표시하기 전에 셰이더를 준비합니다.
     renderer.compile(scene, camera);
     renderer.render(scene, camera);
 
 
     setLoadingProgress(100, 'Complete');
 
-
-    // Briefly show the completed progress bar.
-    // 완료된 로딩바를 잠시 보여줍니다.
     await wait(300);
-
 
     document.body.classList.add('scene-ready');
     loadingScreen?.classList.add('hidden');
-
 
     animate();
 }
@@ -350,21 +377,15 @@ async function initializeScene() {
 function animate() {
     requestAnimationFrame(animate);
 
-
     if (dayNight.updateAuto()) {
         gui.updateHourDisplay();
     }
 
-
     controls.update();
 
-
-    // Synchronize the helper with the current light.
-    // 현재 조명과 가이드 위치를 동기화합니다.
     if (lightHelper.visible) {
         lightHelper.update();
     }
-
 
     renderer.render(scene, camera);
 }
